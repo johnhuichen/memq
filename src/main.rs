@@ -4,6 +4,7 @@ use log::info;
 use snafu::Whatever;
 
 mod logger;
+mod config;
 
 #[derive(Parser, Debug)]
 #[command(name = "mycli", version, about = "A CLI with subcommands")]
