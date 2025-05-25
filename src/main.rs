@@ -1,13 +1,15 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use log::info;
-use snafu::Whatever;
+use snafu::{ResultExt, Whatever};
+
+use self::app_config::AppConfig;
 
 mod logger;
-mod config;
+mod app_config;
 
 #[derive(Parser, Debug)]
-#[command(name = "mycli", version, about = "A CLI with subcommands")]
+#[command(name = "memq cli", version, about = "A program to query local markdown files")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -15,7 +17,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Add a path to watchlist
+    /// Add a path to watchlist.
     /// Example: memq add /path/to/example.md /path/to/example
     Add {
         /// Show verbose output
@@ -27,7 +29,7 @@ enum Commands {
         paths: Vec<String>,
     },
 
-    /// Remove a path from watchlist
+    /// Remove a path from watchlist.
     /// Example: memq remove /path/to/example.md /path/to/example
     Remove {
         /// Show verbose output
@@ -39,7 +41,7 @@ enum Commands {
         paths: Vec<String>,
     },
 
-    /// List paths in the watchlist
+    /// List paths in the watchlist.
     /// Example: memq list
     List {
         /// Show verbose output
@@ -56,8 +58,14 @@ fn main() -> Result<(), Whatever> {
         Commands::Add { paths, verbose } => {
             logger::init(*verbose);
 
-            info!("This is a log message");
-            println!("{}", format!("Add paths: {paths:?}").bright_blue());
+            match AppConfig::add_paths(paths) {
+                Ok(_) => println!("done"),
+                Err(e) => match e {
+                    app_config::AppConfigError::InvalidPath { path } => todo!(),
+                    app_config::AppConfigError::LoadConfig { source } => todo!(),
+                    app_config::AppConfigError::SaveConfig { source } => todo!(),
+                },
+            }
         }
         Commands::Remove { paths, verbose } => {
             logger::init(*verbose);
