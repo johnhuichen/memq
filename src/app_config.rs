@@ -37,14 +37,12 @@ impl AppConfig {
     // }
 
     pub fn add_paths(new_paths: &[String]) -> Result<(), AppConfigError> {
-        if !Self::validate_paths(new_paths) {
-            return Err(AppConfigError::InvalidPath);
-        }
+        return Err(AppConfigError::InvalidPath { path: "test".to_string() });
 
         let mut cfg = Self::load().context(LoadConfigSnafu)?;
 
         for path in new_paths {
-            if !cfg.paths.contains(path) {
+            if !cfg.paths.contains(path) && Path::new(path).exists() {
                 cfg.paths.push(path.clone());
             }
         }
@@ -52,9 +50,5 @@ impl AppConfig {
         confy::store(APP_NAME, None, &cfg).context(SaveConfigSnafu)?;
 
         Ok(())
-    }
-
-    fn validate_paths(paths: &[String]) -> bool {
-        paths.iter().map(Path::new).all(|p| p.exists())
     }
 }

@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use log::info;
+use log::error;
 use snafu::{ResultExt, Whatever};
 
 use self::app_config::AppConfig;
@@ -61,9 +61,9 @@ fn main() -> Result<(), Whatever> {
             match AppConfig::add_paths(paths) {
                 Ok(_) => println!("done"),
                 Err(e) => match e {
-                    app_config::AppConfigError::InvalidPath { path } => todo!(),
-                    app_config::AppConfigError::LoadConfig { source } => todo!(),
-                    app_config::AppConfigError::SaveConfig { source } => todo!(),
+                    app_config::AppConfigError::InvalidPath { path } => error!("Error: invalid path={}", path),
+                    app_config::AppConfigError::LoadConfig { source: _ }  => error!("Error: cannot load config"),
+                    app_config::AppConfigError::SaveConfig { source: _ } => error!("Error: cannot save config"),
                 },
             }
         }
