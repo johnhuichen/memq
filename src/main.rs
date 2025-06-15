@@ -1,15 +1,19 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use log::error;
-use snafu::{ResultExt, Whatever};
+use snafu::Whatever;
 
 use self::app_config::AppConfig;
 
-mod logger;
 mod app_config;
+mod logger;
 
 #[derive(Parser, Debug)]
-#[command(name = "memq cli", version, about = "A program to query local markdown files")]
+#[command(
+    name = "memq cli",
+    version,
+    about = "A program to query local markdown files"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -17,6 +21,12 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    #[command(subcommand)]
+    Path(PathCommands),
+}
+
+#[derive(Subcommand, Debug)]
+enum PathCommands {
     /// Add a path to watchlist.
     /// Example: memq add /path/to/example.md /path/to/example
     Add {
@@ -43,7 +53,7 @@ enum Commands {
 
     /// List paths in the watchlist.
     /// Example: memq list
-    List {
+    Show {
         /// Show verbose output
         #[arg(short, long)]
         verbose: bool,
@@ -55,27 +65,29 @@ fn main() -> Result<(), Whatever> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Add { paths, verbose } => {
+        Commands::Path(PathCommands::Add { paths, verbose }) => {
             logger::init(*verbose);
 
-            match AppConfig::add_paths(paths) {
-                Ok(_) => println!("done"),
-                Err(e) => match e {
-                    app_config::AppConfigError::InvalidPath { path } => error!("Error: invalid path={}", path),
-                    app_config::AppConfigError::LoadConfig { source: _ }  => error!("Error: cannot load config"),
-                    app_config::AppConfigError::SaveConfig { source: _ } => error!("Error: cannot save config"),
-                },
+            match AppConfig::add_doc_paths(paths) {
+                Ok(_) => println!("Done"),
+                Err(e) => error!("{}", format!("{e}").bright_red()),
             }
         }
-        Commands::Remove { paths, verbose } => {
+        Commands::Path(PathCommands::Remove { paths, verbose }) => {
             logger::init(*verbose);
 
-            println!("Remove paths: {:?}", paths);
+            match AppConfig::remove_doc_paths(paths) {
+                Ok(_) => println!("Done"),
+                Err(e) => error!("{}", format!("{e}").bright_red()),
+            }
         }
-        Commands::List { verbose } => {
+        Commands::Path(PathCommands::Show { verbose }) => {
             logger::init(*verbose);
 
-            println!("List paths");
+            match AppConfig::show_doc_paths() {
+                Ok(_) => {}
+                Err(e) => error!("{}", format!("{e}").bright_red()),
+            }
         }
     };
 
