@@ -17,53 +17,59 @@ pub enum AppConfigError {
     SaveConfig { source: ConfyError },
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Doc {
+    path: String,
+    is_indexed: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct AppConfig {
-    doc_paths: Vec<String>,
+    docs: Vec<Doc>,
 }
 
 impl AppConfig {
-    pub fn load() -> Result<Self, ConfyError> {
-        let cfg: AppConfig = confy::load(APP_NAME, None)?;
+    pub fn load() -> Result<Self, AppConfigError> {
+        let cfg: AppConfig = confy::load(APP_NAME, None).context(LoadConfigSnafu)?;
 
         Ok(cfg)
     }
 
-    pub fn show_doc_paths() -> Result<(), AppConfigError> {
-        let cfg = Self::load().context(LoadConfigSnafu)?;
-        if cfg.doc_paths.is_empty() {
+    pub fn print_docs(&self) -> Result<(), AppConfigError> {
+        if self.docs.is_empty() {
             println!("There are currently no paths in the watchlist");
         }
-        for path in cfg.doc_paths {
-            println!("{}", path);
+        for doc in &self.docs {
+            println!("{:?}", doc);
         }
         Ok(())
     }
 
-    pub fn add_doc_paths(new_paths: &[String]) -> Result<(), AppConfigError> {
-        let mut cfg = Self::load().context(LoadConfigSnafu)?;
+    pub fn add_docs(&mut self, new_paths: &[String]) -> Result<(), AppConfigError> {
+        let doc_paths: Vec<String> = self.docs.iter().map(|doc| doc.path.clone()).collect();
 
         for path in new_paths {
-            if cfg.doc_paths.contains(path) {
+            if doc_paths.contains(path) {
                 info!("{} is already in the list", path);
             } else if !Path::new(path).exists() {
                 println!("{}", format!("{} does not exist!", path).bright_red());
             } else {
-                cfg.doc_paths.push(path.clone());
+                self.docs.push(Doc {
+                    path: String::from(path),
+                    is_indexed: false,
+                });
             }
         }
 
-        confy::store(APP_NAME, None, &cfg).context(SaveConfigSnafu)?;
+        confy::store(APP_NAME, None, &self).context(SaveConfigSnafu)?;
 
         Ok(())
     }
 
-    pub fn remove_doc_paths(remove_paths: &[String]) -> Result<(), AppConfigError> {
-        let mut cfg = Self::load().context(LoadConfigSnafu)?;
+    pub fn remove_doc_paths(&mut self, remove_paths: &[String]) -> Result<(), AppConfigError> {
+        self.docs.retain(|doc| !remove_paths.contains(&doc.path));
 
-        cfg.doc_paths.retain(|path| !remove_paths.contains(path));
-
-        confy::store(APP_NAME, None, &cfg).context(SaveConfigSnafu)?;
+        confy::store(APP_NAME, None, &self).context(SaveConfigSnafu)?;
 
         Ok(())
     }
